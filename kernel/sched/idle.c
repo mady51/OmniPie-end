@@ -129,9 +129,11 @@ static void cpuidle_idle_call(void)
 	 * until a proper wakeup interrupt happens.
 	 */
 	if (idle_should_freeze()) {
-		cpuidle_enter_freeze();
-		goto exit_idle;
-	}
+		entered_state = cpuidle_enter_freeze(drv, dev);
+		if (entered_state >= 0) {
+			local_irq_enable();
+			goto exit_idle;
+		}
 
 		reflect = false;
 		next_state = cpuidle_find_deepest_state(drv, dev);
