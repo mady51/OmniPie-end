@@ -22,6 +22,7 @@
 #include <linux/notifier.h>
 #include <linux/irqreturn.h>
 #include <linux/kref.h>
+#include <linux/kthread.h>
 
 #include "mdss.h"
 #include "mdss_mdp_hwio.h"
@@ -1016,6 +1017,9 @@ struct mdss_overlay_private {
 
 	bool allow_kickoff;
 
+        struct kthread_worker worker;
+        struct kthread_work vsync_work;
+        struct task_struct *thread;
 	/* video frame info used by deterministic frame rate control */
 	struct mdss_mdp_frc_fsm *frc_fsm;
 	u8 sd_transition_state;
@@ -1034,6 +1038,7 @@ struct mdss_mdp_set_ot_params {
 	u32 reg_off_vbif_lim_conf;
 	u32 reg_off_mdp_clk_ctrl;
 	u32 bit_off_mdp_clk_ctrl;
+
 };
 
 struct mdss_mdp_commit_cb {
