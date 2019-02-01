@@ -923,8 +923,8 @@ static void _adreno_dispatcher_issuecmds(struct adreno_device *adreno_dev)
  */
 static void adreno_dispatcher_issuecmds(struct adreno_device *adreno_dev)
 {
-	struct adreno_dispatcher *dispatcher = &adreno_dev->dispatcher;
-	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
+//	struct adreno_dispatcher *dispatcher = &adreno_dev->dispatcher;
+//	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
 	adreno_dispatcher_schedule(KGSL_DEVICE(adreno_dev));
 }
 
