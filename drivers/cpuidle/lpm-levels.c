@@ -568,7 +568,7 @@ static int cluster_select(struct lpm_cluster *cluster, bool from_idle)
 			continue;
 
 		if (from_idle && latency_us <= pwr_params->latency_us)
-			break;
+			continue;
 
 		if (sleep_us < pwr_params->time_overhead_us)
 			break;
