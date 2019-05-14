@@ -628,14 +628,6 @@ int cpuidle_register(struct cpuidle_driver *drv,
 EXPORT_SYMBOL_GPL(cpuidle_register);
 
 #ifdef CONFIG_SMP
-
-#if 0
-static void smp_callback(void *v)
-{
-	/* we already woke the CPU up, nothing more to do */
-}
-#endif
-
 /*
  * This function gets called when a part of the kernel has a new latency
  * requirement.  This means we need to get only those processors out of their
@@ -646,13 +638,13 @@ static int cpuidle_latency_notify(struct notifier_block *b,
 		unsigned long l, void *v)
 {
 	static unsigned long prev_latency = ULONG_MAX;
+	unsigned long cpus;
+	struct cpumask *idle_mask = to_cpumask(&cpus);
 
 	if (l < prev_latency) {
-		const unsigned long cpus = atomic_read(&idle_cpus);
-		struct cpumask *idle_mask = to_cpumask(&cpus);
-
 		preempt_disable();
-		smp_call_function_many(idle_mask, smp_callback, NULL, false);
+		cpus = atomic_read(&idle_cpus);
+		arch_send_call_function_ipi_mask(idle_mask);
 		preempt_enable();
 	}
 
