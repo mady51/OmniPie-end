@@ -101,7 +101,7 @@ static int find_deepest_state(struct cpuidle_driver *drv,
  * cpuidle_find_deepest_state - Find the deepest available idle state.
  * @drv: cpuidle driver for the given CPU.
  * @dev: cpuidle device for the given CPU.
- */
+*/ 
 int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
 			       struct cpuidle_device *dev)
 {
@@ -138,36 +138,13 @@ static void enter_freeze_proper(struct cpuidle_driver *drv,
  * cpuidle_find_deepest_state - Find the deepest available idle state.
  * @drv: cpuidle driver for the given CPU.
  * @dev: cpuidle device for the given CPU.
- */
+ 
 int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
 			       struct cpuidle_device *dev)
 {
 	return find_deepest_state(drv, dev, false);
 }
-
-static void enter_freeze_proper(struct cpuidle_driver *drv,
-				struct cpuidle_device *dev, int index)
-{
-	/*
-	 * trace_suspend_resume() called by tick_freeze() for the last CPU
-	 * executing it contains RCU usage regarded as invalid in the idle
-	 * context, so tell RCU about that.
-	 */
-	RCU_NONIDLE(tick_freeze());
-	/*
-	 * The state used here cannot be a "coupled" one, because the "coupled"
-	 * cpuidle mechanism enables interrupts and doing that with timekeeping
-	 * suspended is generally unsafe.
-	 */
-	drv->states[index].enter_freeze(dev, drv, index);
-	WARN_ON(!irqs_disabled());
-	/*
-	 * timekeeping_resume() that will be called by tick_unfreeze() for the
-	 * first CPU executing it calls functions containing RCU read-side
-	 * critical sections, so tell RCU about that.
-	 */
-	RCU_NONIDLE(tick_unfreeze());
-}
+*/
 
 /**
  * cpuidle_enter_freeze - Enter an idle state suitable for suspend-to-idle.
