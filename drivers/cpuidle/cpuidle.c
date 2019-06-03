@@ -161,8 +161,6 @@ static void enter_freeze_proper(struct cpuidle_driver *drv,
  * If there are states with the ->enter_freeze callback, find the deepest of
  * them and enter it with frozen tick.  Otherwise, find the deepest state
  * available and enter it normally.
- *
- * Returns with enabled interrupts.
  */
 int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
@@ -176,7 +174,6 @@ int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	index = cpuidle_find_deepest_state(drv, dev, true);
 	if (index >= 0) {
 		enter_freeze_proper(drv, dev, index);
-		local_irq_enable();
 		return;
 	}
 
@@ -186,9 +183,9 @@ int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	 */
 	index = cpuidle_find_deepest_state(drv, dev, false);
 	if (index >= 0)
-		cpuidle_enter(drv, dev, index);
-	else
-		arch_cpu_idle();
+		enter_freeze_proper(drv, dev, index);
+
+	return index;
 }
 
 /**
