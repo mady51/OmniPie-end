@@ -45,8 +45,8 @@ void disable_cpuidle(void)
 	off = 1;
 }
 
-bool cpuidle_not_available(struct cpuidle_driver *drv,
-			   struct cpuidle_device *dev)
+static bool cpuidle_not_available(struct cpuidle_driver *drv,
+				  struct cpuidle_device *dev)
 {
 	return off || !initialized || !drv || !dev || !dev->enabled;
 }
@@ -73,8 +73,14 @@ int cpuidle_play_dead(void)
 	return -ENODEV;
 }
 
-static int find_deepest_state(struct cpuidle_driver *drv,
-			      struct cpuidle_device *dev, bool freeze)
+/**
+ * cpuidle_find_deepest_state - Find deepest state meeting specific conditions.
+ * @drv: cpuidle driver for the given CPU.
+ * @dev: cpuidle device for the given CPU.
+ * @freeze: Whether or not the state should be suitable for suspend-to-idle.
+ */
+static int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
+				      struct cpuidle_device *dev, bool freeze)
 {
 	unsigned int latency_req = 0;
 	int i, ret = freeze ? -1 : CPUIDLE_DRIVER_STATE_START - 1;
@@ -91,17 +97,6 @@ static int find_deepest_state(struct cpuidle_driver *drv,
 		ret = i;
 	}
 	return ret;
-}
-
-/**
- * cpuidle_find_deepest_state - Find the deepest available idle state.
- * @drv: cpuidle driver for the given CPU.
- * @dev: cpuidle device for the given CPU.
- */
-int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
-			       struct cpuidle_device *dev)
-{
-	return find_deepest_state(drv, dev, false);
 }
 
 static void enter_freeze_proper(struct cpuidle_driver *drv,
@@ -164,22 +159,42 @@ static void enter_freeze_proper(struct cpuidle_driver *drv,
  * @dev: cpuidle device for the given CPU.
  *
  * If there are states with the ->enter_freeze callback, find the deepest of
- * them and enter it with frozen tick.
+ * them and enter it with frozen tick.  Otherwise, find the deepest state
+ * available and enter it normally.
+ *
+ * Returns with enabled interrupts.
  */
 int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
 	int index;
+
+	if (cpuidle_not_available(drv, dev))
+		goto fallback;
 
 	/*
 	 * Find the deepest state with ->enter_freeze present, which guarantees
 	 * that interrupts won't be enabled when it exits and allows the tick to
 	 * be frozen safely.
 	 */
-	index = find_deepest_state(drv, dev, true);
-	if (index >= 0)
+	index = cpuidle_find_deepest_state(drv, dev, true);
+	if (index >= 0) {
 		enter_freeze_proper(drv, dev, index);
+		local_irq_enable();
+		return;
+	}
 
-	return index;
+	/*
+	 * It is not safe to freeze the tick, find the deepest state available
+	 * at all and try to enter it normally.
+	 */
+	index = cpuidle_find_deepest_state(drv, dev, false);
+	if (index >= 0) {
+		cpuidle_enter(drv, dev, index);
+		return;
+	}
+
+ fallback:
+	arch_cpu_idle();
 }
 
 /**
@@ -241,6 +256,9 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
  */
 int cpuidle_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
+	if (cpuidle_not_available(drv, dev))
+		return -ENODEV;
+
 	return cpuidle_curr_governor->select(drv, dev);
 }
 
