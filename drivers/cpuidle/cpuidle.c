@@ -45,8 +45,8 @@ void disable_cpuidle(void)
 	off = 1;
 }
 
-static bool cpuidle_not_available(struct cpuidle_driver *drv,
-				  struct cpuidle_device *dev)
+bool cpuidle_not_available(struct cpuidle_driver *drv,
+			   struct cpuidle_device *dev)
 {
 	return off || !initialized || !drv || !dev || !dev->enabled;
 }
@@ -168,9 +168,6 @@ int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
 	int index;
 
-	if (cpuidle_not_available(drv, dev))
-		goto fallback;
-
 	/*
 	 * Find the deepest state with ->enter_freeze present, which guarantees
 	 * that interrupts won't be enabled when it exits and allows the tick to
@@ -188,13 +185,10 @@ int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	 * at all and try to enter it normally.
 	 */
 	index = cpuidle_find_deepest_state(drv, dev, false);
-	if (index >= 0) {
+	if (index >= 0)
 		cpuidle_enter(drv, dev, index);
-		return;
-	}
-
- fallback:
-	arch_cpu_idle();
+	else
+		arch_cpu_idle();
 }
 
 /**
@@ -256,9 +250,6 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
  */
 int cpuidle_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
-	if (cpuidle_not_available(drv, dev))
-		return -ENODEV;
-
 	return cpuidle_curr_governor->select(drv, dev);
 }
 
