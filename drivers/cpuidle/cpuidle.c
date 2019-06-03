@@ -74,10 +74,7 @@ int cpuidle_play_dead(void)
 }
 
 static int find_deepest_state(struct cpuidle_driver *drv,
-			      struct cpuidle_device *dev,
-			      unsigned int max_latency,
-			      unsigned int forbidden_flags,
-			      bool freeze)
+			      struct cpuidle_device *dev, bool freeze)
 {
 	unsigned int latency_req = 0;
 	int i, ret = -ENXIO;
@@ -87,8 +84,6 @@ static int find_deepest_state(struct cpuidle_driver *drv,
 		struct cpuidle_state_usage *su = &dev->states_usage[i];
 
 		if (s->disabled || su->disable || s->exit_latency <= latency_req
-		    || s->exit_latency > max_latency
-		    || (s->flags & forbidden_flags)
 		    || (freeze && !s->enter_freeze))
 			continue;
 
@@ -106,7 +101,7 @@ static int find_deepest_state(struct cpuidle_driver *drv,
 int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
 			       struct cpuidle_device *dev)
 {
-	return find_deepest_state(drv, dev, UINT_MAX, 0, false);
+	return find_deepest_state(drv, dev, false);
 }
 
 static void enter_freeze_proper(struct cpuidle_driver *drv,
@@ -185,7 +180,7 @@ int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	 * that interrupts won't be enabled when it exits and allows the tick to
 	 * be frozen safely.
 	 */
-	index = find_deepest_state(drv, dev, UINT_MAX, 0, true);
+	index = find_deepest_state(drv, dev, true);
 	if (index >= 0)
 		enter_freeze_proper(drv, dev, index);
 
